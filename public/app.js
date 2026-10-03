@@ -1334,21 +1334,43 @@ function restoreSide() {
   } catch {}
 }
 
-let _navCache = { nav: '', side: '' };   // 上次渲染的侧栏 HTML：内容没变就不碰 DOM（双渲染/事件重绘都走这里）
+let _navCache = { nav: '', side: '' };   // 上次渲染的侧栏结构 HTML：内容没变就不碰 DOM（双渲染/事件重绘都走这里）
+/**
+ * 侧栏导航渲染。
+ * 关键约束：**结构 HTML 里不带 active 类**（on），路由切换只做两件事：
+ *   ① 结构变了才整体替换 innerHTML（替换前后保存/还原 scrollTop）；
+ *   ② 结构没变就只切换既有 <a> 的 on 类。
+ * 早期版本把 `class="on"` 织进缓存串里——每次换页字符串必变 → innerHTML 必重建
+ * → 侧栏滚动条跳回顶部（点最底下的菜单项，页面"弹回最上面"就是这么来的）。
+ */
 function renderNav(){
   const cur = routeOf(currentPath());
   // 导航渲染统一排除 hidden 路由（它们只作为页面/detail 入口存在，不进侧栏与顶栏）；
   // 分组名也从可见项里取，避免某组删空后只剩一个光杆标题。
   const visible = ROUTES.filter(r => !r.hidden);
   const nav = visible.filter(r => r.group === NAV_GROUP).map(r =>
-    `<a href="#${r.path}" class="${r.id===cur.id?'on':''}">${r.label}</a>`).join('');
+    `<a href="#${r.path}">${r.label}</a>`).join('');
   const groups = [...new Set(visible.map(r => r.group))];
   const side = groups.map(g =>
     `<h4 title="${GROUP_HINT[g] || ''}">${g}</h4>` + visible.filter(r => r.group === g).map(r =>
-      `<a href="#${r.path}" class="${r.id===cur.id?'on':''}"><span class="ico">${r.ico}</span>${r.label}</a>`).join('')
+      `<a href="#${r.path}"><span class="ico">${r.ico}</span>${r.label}</a>`).join('')
   ).join('');
-  if (nav !== _navCache.nav) { document.getElementById('nav').innerHTML = nav; _navCache.nav = nav; }
-  if (side !== _navCache.side) { document.getElementById('side').innerHTML = side; _navCache.side = side; }
+  // 结构变化才动 DOM；整体替换前后保滚动位置（极端情况下也不跳顶）
+  const navEl = document.getElementById('nav'), sideEl = document.getElementById('side');
+  if (nav !== _navCache.nav && navEl) {
+    const st = navEl.scrollTop;
+    navEl.innerHTML = nav; _navCache.nav = nav;
+    navEl.scrollTop = st;
+  }
+  if (side !== _navCache.side && sideEl) {
+    const st = sideEl.scrollTop;
+    sideEl.innerHTML = side; _navCache.side = side;
+    sideEl.scrollTop = st;
+  }
+  // active 高亮：按 href 精确匹配切换 on 类，DOM 不重建 → 滚动位置天然保住
+  const want = '#' + cur.path;
+  for (const el of sideEl ? sideEl.querySelectorAll('a') : []) el.classList.toggle('on', el.getAttribute('href') === want);
+  for (const el of navEl ? navEl.querySelectorAll('a') : []) el.classList.toggle('on', el.getAttribute('href') === want);
 }
 
 /* ---------- 数据加载 ---------- */
