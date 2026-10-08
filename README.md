@@ -1,3 +1,5 @@
+> 企业级时空智能体生产平台请访问另一个项目 <https://github.com/gischina/sti-harness>
+
 # DSH Console · 易智瑞西安时空智能应用工作台
 
 [![CI](https://github.com/gischina/dsh-console/actions/workflows/ci.yml/badge.svg)](https://github.com/gischina/dsh-console/actions/workflows/ci.yml)
@@ -40,6 +42,7 @@
 - [5. 目录结构](#5-目录结构)
 - [6. 功能页面](#6-功能页面)
   - [全量回归](#全量回归)
+  - [回归与验收（详细）](docs/regression.md)
 - [7. 控制台自有接口](#7-控制台自有接口)
 - [8. 数据来源原则](#8-数据来源原则)
 - [9. 停止与重启](#9-停止与重启)
@@ -687,6 +690,7 @@ dsh-console/
 ├─ ui-prefs.yaml         # 控制台界面偏好（各页说明卡显隐等）※ 本机偏好，勿分发
 ├─ docs/
 │  ├─ deploy.md          # 部署说明（打包时拷成产物里的 README.md，是对方唯一需要的文档）
+│  ├─ regression.md      # 回归与验收：为什么需要、每层测什么、失败怎么读、改完跑哪些
 │  └─ images/            # README 用的界面截图（随仓库走相对路径，不依赖图床）
 ├─ tools/                # 运维 / 排查用的小工具（不参与运行，可整体不拷）
 │  ├─ test-api.mjs       # 端到端回归：端点映射 + 参数形状 + 页面渲染 + 接线审计 + 重绘防回归
@@ -814,6 +818,9 @@ dsh-console/
 下面五个脚本都需要**控制台正在运行**（`CONSOLE_PORT` 可改端口），是改完代码后的完整验证，
 **每个都要认末行的 `DONE fails=0`**。其中 `test-api` / `render-all` / `page-audit` / `cdp-chat-check`
 必须有活的 DSH 会话，所以**在 CI 里跑不了** —— CI 只覆盖不需要 DSH 的那部分（见 `.github/workflows/ci.yml` 顶部说明）。
+
+> 📖 **为什么需要这套脚本、每层在测什么、失败了怎么读、改完该跑哪些**
+> —— 见 **[docs/regression.md](docs/regression.md)**（回归与验收）。下面只是清单。
 
 | 脚本 | 规模 | 测什么 |
 |---|---|---|
