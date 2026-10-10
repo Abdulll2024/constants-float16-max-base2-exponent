@@ -178,7 +178,7 @@ for (const [srcRel, dstRel] of [
 
 say('');
 say('[2] 原样拷贝');
-for (const rel of ['public/index.html', 'public/style.css', 'start.cmd', 'check.cmd']) {
+for (const rel of ['public/index.html', 'public/style.css', 'start.cmd', 'start-lan.cmd', 'check.cmd']) {
   copyAsIs(rel);
   say('  ✓ ' + rel);
 }

@@ -17,15 +17,21 @@ rem answers "where" just fine but cannot actually run anything.
 node -v >nul 2>nul
 if errorlevel 1 goto nonode
 
-rem The address below must follow CONSOLE_PORT, otherwise this
-rem hint is wrong whenever the port has been changed.
+rem The address below must follow CONSOLE_PORT / CONSOLE_HOST,
+rem otherwise this hint is wrong when either has been changed.
 set "CONSOLE_PORT_LOCAL=%CONSOLE_PORT%"
 if "%CONSOLE_PORT_LOCAL%"=="" set "CONSOLE_PORT_LOCAL=3081"
+set "CONSOLE_HOST_LOCAL=%CONSOLE_HOST%"
+if "%CONSOLE_HOST_LOCAL%"=="" set "CONSOLE_HOST_LOCAL=127.0.0.1"
 
 echo.
 echo Starting DSH Console %DSHC_VER% ...  (press Ctrl+C to stop)
 echo   Then open in browser:  http://127.0.0.1:%CONSOLE_PORT_LOCAL%
-echo   (port from CONSOLE_PORT if you set it, otherwise 3081)
+if /i not "%CONSOLE_HOST_LOCAL%"=="127.0.0.1" if /i not "%CONSOLE_HOST_LOCAL%"=="::1" (
+  echo   Listening on:  %CONSOLE_HOST_LOCAL%:%CONSOLE_PORT_LOCAL%
+  echo   LAN clients: use this machine's IP and port %CONSOLE_PORT_LOCAL%
+)
+echo   (CONSOLE_PORT / CONSOLE_HOST if set; defaults 3081 / 127.0.0.1)
 echo   Do NOT open public\index.html directly.
 echo.
 

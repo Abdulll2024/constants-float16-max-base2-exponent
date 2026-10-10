@@ -10,7 +10,7 @@
  * - /api/* 反向代理到 DSH 主机（默认 http://127.0.0.1:3080），解决浏览器跨域
  * - /api/kb/* 转发到 DSH 主机的 /knowledge/*（知识库插件自带的后端）
  * - /api/dshm/* 转发到 DSH 主机的 /dsh-market/*（dshmarket 插件市场后端）
- * 仅绑定 127.0.0.1，不对外暴露。
+ * 默认绑定 127.0.0.1；设 CONSOLE_HOST=0.0.0.0 可让局域网用 IP 访问（可信内网再用）。
  */
 const http = require('node:http');
 const fs = require('node:fs');
@@ -34,7 +34,21 @@ if (NODE_MAJOR < 18) {
 }
 
 const PORT = Number(process.env.CONSOLE_PORT || 3081);
+const HOST = String(process.env.CONSOLE_HOST || '127.0.0.1').trim() || '127.0.0.1';
 const ROOT = path.join(__dirname, 'public');
+
+/** 本机非回环 IPv4，供 CONSOLE_HOST=0.0.0.0 时打印可访问地址 */
+function lanUrls(port) {
+  const urls = [];
+  for (const nets of Object.values(os.networkInterfaces())) {
+    for (const n of nets || []) {
+      if ((n.family === 'IPv4' || n.family === 4) && !n.internal) {
+        urls.push('http://' + n.address + ':' + port);
+      }
+    }
+  }
+  return urls;
+}
 
 /* ============ DSH 目标地址与访问令牌 ============
    DSH 的 Web 端口带浏览器会话鉴权：
@@ -2561,17 +2575,31 @@ if (process.argv.includes('--check')) {
     process.exit(1);
   });
 } else {
-  server.listen(PORT, '127.0.0.1', async () => {
+  server.listen(PORT, HOST, async () => {
+    const localUrl = 'http://127.0.0.1:' + PORT;
+    const openUrl = (HOST === '0.0.0.0' || HOST === '::') ? localUrl : ('http://' + HOST + ':' + PORT);
     console.log('');
     console.log('DSH Console 已启动');
-    console.log('  控制台地址 : http://127.0.0.1:' + PORT);
+    console.log('  监听地址   : ' + HOST + ':' + PORT);
+    console.log('  本机打开   : ' + localUrl);
+    if (HOST === '0.0.0.0' || HOST === '::') {
+      const lan = lanUrls(PORT);
+      if (lan.length) {
+        console.log('  局域网访问 : ' + lan.join('  |  '));
+      } else {
+        console.log('  局域网访问 : （未检测到非回环 IPv4，请用本机 IP 自行拼接端口 ' + PORT + '）');
+      }
+      console.log('  ⚠ 已监听全部网卡：同网机器可访问，仅建议在可信内网使用');
+    } else if (HOST !== '127.0.0.1' && HOST !== '::1') {
+      console.log('  外部访问   : http://' + HOST + ':' + PORT);
+    }
     console.log('  代理目标   : ' + DSH);
-    console.log('  实时流桥接 : ws://127.0.0.1:' + PORT + '/api/remote.mux → ' + DSH);
+    console.log('  实时流桥接 : ws://' + (HOST === '0.0.0.0' ? '127.0.0.1' : HOST) + ':' + PORT + '/api/remote.mux → ' + DSH);
     console.log('');
     await preflight();
     console.log('');
-    console.log('浏览器打开 http://127.0.0.1:' + PORT + ' 即可（Ctrl+C 停止）');
+    console.log('浏览器打开 ' + openUrl + ' 即可（Ctrl+C 停止）');
     console.log('若首页提示需要配置 DSH：点右上角状态栏，把 dsh web 打印的地址整段填进去。');
-    console.log('（部署排查：node server.cjs --check）');
+    console.log('（部署排查：node server.cjs --check；局域网：$env:CONSOLE_HOST="0.0.0.0"）');
   });
 }
